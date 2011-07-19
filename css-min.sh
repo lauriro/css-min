@@ -19,44 +19,48 @@
 #
 # The following is a list of compile dependencies for this project. These
 # dependencies are required to compile and run the application:
-#   - Unix tools: cat, sed
+#   - Unix tools: cat, sed, tr
 #
 #
 
+while getopts ':l:' OPT; do
+	case $OPT in
+		l)  sed -e 's/^/ * /' -e '1i/**' -e '$a\ *\/' $OPTARG;;
+
+		:)  echo "Option -$OPTARG requires an argument." >&2; exit 1;;
+		\?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
+	esac
+done
+
+shift $((OPTIND-1))
 
 css_import() {
 	while read s; do
-		if [ "${s:0:8}" = "@import " ]; then
-			s=${s:12:(${#s}-14)}
-			s=${s//[\"\']/}
-			echo -e "$(cat "$1$s")\n" |
-				# remove comments
-				sed -e '/\/\*/{:n;/\*\//!{N;b n;};s/\/\*\([^*]\|\*[^/]\)*\*\///g}' |
-				sed -e "s/'/\"/g" |
-				css_import "$1$([[ $s = */* ]] && echo "${s%/*}/")" |
-				tr -d "\n" |
-				sed -e 's/\s+/ /g' -e 's/;\+/;/g' \
-				    -e 's/\s*\([,;{}]\)\s*/\1/g' \
-				    -e 's/\([.:]\)\s*/\1/g' \
-						-e 's/\([^0-9]\)0\(px\|em\|%\|in\|cm\|mm\|pc\|pt\|ex\)/\10/g' \
-						-e 's/:0 0\( 0 0\)?\(;\|}\)/:0\2/g' \
-						-e "s/url(\"\([0-9a-z\.\/_-]*\)\")/url(\1)/ig" \
-						-e 's/\(:\| \)0\.\([0-9]\+\)/\1.\2/g' \
-						-e 's/;*}/}\n/g' |
-				# fix and remove empty rules
-				sed -e 's/ and(/ and (/g' -e '/^.*{}$/d'
-		elif [ -n "$s" ]; then
-			# fix url paths
-			if [[ -n "$1" && $s = *url\(* ]]; then
-				[[ $s = *url\(\"* ]] && s="${s//url(\"/url(\"$1}" || s="${s//url(/url($1}"
-			fi
-			echo "$s"
-		fi
-	done
+		case "$s" in
+			@import*)
+				file=$(expr -- "$s" : '@import url(['\''"]*\([^'\''"]*\)['\''"]*')
+				# remove comments BSD safe
+				sed -E -e '/\/\*([^@]|$)/ba' -e b -e :a -e 's,/\*[^@]([^*]|\*[^/])*\*/,,g;t' -e 'N;ba' "$1$file" |
+					css_import "$1$(expr -- "$file" : '\(.*/\)')"
+				;;
+			*) echo "$s" ;;
+		esac
+	done | 
+		tr -s "'\t\n " '" ' |
+		sed -E -e 's/ *([,;{}]) */\1/g' \
+		       -e 's/([.:]) */\1/g' \
+		       -e 's/([^0-9])0(px|em|%|in|cm|mm|pc|pt|ex)/\10/g' \
+		       -e 's/:0 0( 0 0)?(;|})/:0\2/g' \
+		       -e "s,url\(['\"]*,&$1,g" \
+		       -e 's,url\("([0-9a-z\./_-]*)"\),url(\1),g' \
+		       -e 's/(:| )0\.([0-9]+)/\1.\2/g' \
+		       -e 's/;*}/}\
+/g' | 
+		sed -e 's/;;*/;/g' -e 's/ and(/ and (/g' -e '/^.*{}$/d' -e 's,^ *,,' -e '/^$/d'
 }
 
 
 for a in "$@"; do
-	css_import "" <<< "@import url('$a');"
+	echo "@import url('$a');" | css_import ""
 done
 
