@@ -19,7 +19,7 @@
 #
 # The following is a list of compile dependencies for this project. These
 # dependencies are required to compile and run the application:
-#   - Unix tools: cat, sed, tr
+#   - Unix tools: expr, sed, tr
 #
 #
 
@@ -38,7 +38,7 @@ css_import() {
 	while read s; do
 		case "$s" in
 			@import*)
-				file=$(expr -- "$s" : '@import url(['\''"]*\([^'\''"]*\)['\''"]*')
+				file=$(expr -- "$s" : ".*url(['\"]*\([^'\"]*\)")
 				# remove comments BSD safe
 				sed -E -e '/\/\*([^@]|$)/ba' -e b -e :a -e 's,/\*[^@]([^*]|\*[^/])*\*/,,g;t' -e 'N;ba' "$1$file" |
 					css_import "$1$(expr -- "$file" : '\(.*/\)')"
@@ -48,15 +48,17 @@ css_import() {
 	done | 
 		tr -s "'\t\n " '" ' |
 		sed -E -e 's/ *([,;{}]) */\1/g' \
-		       -e 's/([.:]) */\1/g' \
+		       -e 's/^ *//' \
+		       -e 's/;*}/}\
+/g' |
+		sed -E -e '/(^|\{\})$/d' \
+		       -e 's/ and\(/ and (/g;t' \
+		       -e 's/: */:/g' \
 		       -e 's/([^0-9])0(px|em|%|in|cm|mm|pc|pt|ex)/\10/g' \
 		       -e 's/:0 0( 0 0)?(;|})/:0\2/g' \
 		       -e "s,url\(['\"]*,&$1,g" \
 		       -e 's,url\("([0-9a-z\./_-]*)"\),url(\1),g' \
-		       -e 's/(:| )0\.([0-9]+)/\1.\2/g' \
-		       -e 's/;*}/}\
-/g' | 
-		sed -e 's/;;*/;/g' -e 's/ and(/ and (/g' -e '/^.*{}$/d' -e 's,^ *,,' -e '/^$/d'
+		       -e 's/([ :,])0\.([0-9]+)/\1.\2/g'
 }
 
 
