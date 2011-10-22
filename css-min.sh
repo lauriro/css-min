@@ -20,8 +20,11 @@
 # The following is a list of compile dependencies for this project. These
 # dependencies are required to compile and run the application:
 #   - Unix tools: expr, sed, tr
+#   - base64 tool or openssl
 #
 #
+
+export LC_ALL=C
 
 while getopts ':l:' OPT; do
 	case $OPT in
@@ -39,7 +42,7 @@ css_import() {
 		case "$s" in
 			"@import "*)
 				file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
-				path=$(expr -- "$file" : '\(.*/\)')
+				path=$(echo "$file" | sed -E -e :a -e 's,([^/]*[^.]/\.\./|\./|[^/]+$),,;ta')
 				# remove comments BSD safe
 				sed -E -e '/\/\*([^@!]|$)/ba' -e b  -e :a \
 				       -e 's,/\*[^@!]([^*]|\*[^/])*\*/,,g;t' \
@@ -50,8 +53,10 @@ css_import() {
 			*"/*! data-uri */")
 				file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
 				data=$(base64 -w0 $file)
-				s=$(echo "$s" | sed "s:$file:%s:;s:/\*.*$::")
 				#data=$(openssl enc -a -in $a | tr -d "\n")
+				#pngcrush -rem allb -brute -reduce original.png optimized.png
+				#optipng -o7 original.png
+				s=$(echo "$s" | sed "s:$file:%s:;s:/\*.*$::")
 				printf "$s" "data:image/${file##*.};base64,$data"
 				;;
 			*)
@@ -69,7 +74,7 @@ css_import() {
 		       -e 's/: */:/g' \
 		       -e 's/([^0-9])0(px|em|%|in|cm|mm|pc|pt|ex)/\10/g' \
 		       -e 's/:0 0( 0 0)?(;|})/:0\2/g' \
-		       -e 's,url\("([0-9a-z\./_-]*)"\),url(\1),g' \
+		       -e 's,url\("([[:alnum:]\./_-]*)"\),url(\1),g' \
 		       -e 's/([ :,])0\.([0-9]+)/\1.\2/g'
 }
 
