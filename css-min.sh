@@ -43,45 +43,49 @@ css_import() {
 			"@import "*)
 				file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
 				path=$(echo "$file" | sed -E -e :a -e 's,([^/]*[^.]/\.\./|\./|[^/]+$),,;ta')
-				# remove comments BSD safe
-				sed -E -e '/\/\*([^@!]|$)/ba' -e b  -e :a \
-				       -e 's,/\*[^@!]([^*]|\*[^/])*\*/,,g;t' \
-				       -e 'N;ba' "$file" |
-				sed -E -e "s,url\(['\"]*,&$path,g" |
-				css_import
+				sed -E -e "s,url\(['\"]*,&$path,g" "$file" | css_import
 				;;
 			*"/*! data-uri */")
 				file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
-				data=$(base64 -w0 $file)
 				#data=$(openssl enc -a -in $a | tr -d "\n")
-				#pngcrush -rem allb -brute -reduce original.png optimized.png
-				#optipng -o7 original.png
 				s=$(echo "$s" | sed "s:$file:%s:;s:/\*.*$::")
-				printf "$s" "data:image/${file##*.};base64,$data"
+				printf "$s" "data:image/${file##*.};base64,$(base64 -w0 $file)"
 				;;
 			*)
 				echo "$s"
 				;;
 		esac
-	done | 
-		tr -s "\t\n " " " | tr "'" '"' |
-		sed -E -e 's/ *([,;{}]) */\1/g' \
-		       -e 's/^ *//' \
-		       -e 's/;*}/}\
-/g' |
-		sed -E -e '/(^|\{\})$/d' \
-		       -e 's/ and\(/ and (/g;t' \
-		       -e 's/: */:/g' \
-		       -e 's/([^0-9])0(px|em|%|in|cm|mm|pc|pt|ex)/\10/g' \
-		       -e 's/:0 0( 0 0)?(;|})/:0\2/g' \
-		       -e 's,url\("([[:alnum:]\./_-]*)"\),url(\1),g' \
-		       -e 's/([ :,])0\.([0-9]+)/\1.\2/g'
+	done
 }
 
 
 for a in "$@"; do
 	echo "@import url('$a');" | css_import
-done
+done |
+
+# remove comments BSD safe
+sed -E \
+    -e '/\/\*([^@!]|$)/ba' -e b  -e :a \
+    -e 's,/\*[^@!]([^*]|\*[^/])*\*/,,g;t' \
+    -e 'N;ba' |
+
+tr -s "\t\n " " " | tr "'" '"' |
+
+sed -E \
+    -e 's/ *([,;{}]) */\1/g' \
+    -e 's/^ *//' \
+    -e 's/;*}/}\
+/g' |
+
+sed -E \
+    -e '/(^|\{\})$/d' \
+    -e 's/ and\(/ and (/g;t' \
+    -e 's/: */:/g' \
+    -e 's/([^0-9])0(px|em|%|in|cm|mm|pc|pt|ex)/\10/g' \
+    -e 's/:0 0( 0 0)?(;|})/:0\2/g' \
+    -e 's,url\("([[:alnum:]\./_-]*)"\),url(\1),g' \
+    -e 's/([ :,])0\.([0-9]+)/\1.\2/g'
+
 
 # Show repeated rules
 # sed 's/^[^{]*//' min.css | sort | uniq -cid | sort -r
