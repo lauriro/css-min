@@ -8,10 +8,10 @@
 # THE BEER-WARE LICENSE
 # =====================
 #
-# <lauri@rooden.ee> wrote this file. As long as you retain this notice
-# you can do whatever you want with this stuff. If we meet some day, and
-# you think this stuff is worth it, you can buy me a beer in return.
-# -- Lauri Rooden
+# <lauri@rooden.ee> wrote this file. As long as you retain this notice you 
+# can do whatever you want with this stuff at your own risk. If we meet some 
+# day, and you think this stuff is worth it, you can buy me a beer in return.
+# -- Lauri Rooden -- https://github.com/lauriro/web_tools
 #
 #
 # Dependencies
@@ -26,9 +26,19 @@
 
 export LC_ALL=C
 
-while getopts ':l:' OPT; do
+SPRITE=0
+
+while getopts ':l:s' OPT; do
 	case $OPT in
 		l)  sed -e 's/^/ * /' -e '1i/**' -e '$a\ *\/' $OPTARG;;
+
+		s)
+			SPRITE=1
+			# reset sprite images
+			convert -size 1x1 xc:none PNG8:i.png # for icons
+			cp i.png v.png # for vertical sprites
+			cp i.png h.png # for horizontal sprites
+		;;
 
 		:)  echo "Option -$OPTARG requires an argument." >&2; exit 1;;
 		\?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
@@ -36,6 +46,7 @@ while getopts ':l:' OPT; do
 done
 
 shift $((OPTIND-1))
+
 
 css_import() {
 	while read s; do
@@ -50,6 +61,17 @@ css_import() {
 				#data=$(openssl enc -a -in $a | tr -d "\n")
 				s=$(echo "$s" | sed "s:$file:%s:;s:/\*.*$::")
 				printf "$s" "data:image/${file##*.};base64,$(base64 -w0 $file)"
+				;;
+			*"/*! sprite "*)
+				if [ $SPRITE ]; then
+					file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
+					echo "$s" | sed "s:url(.*$:url(h.png) repeat-x 0px $(identify -format "%h" h.png)px;:"
+					convert h.png "$file" -append PNG8:h.png
+					#pngcrush -rem allb -brute -reduce original.png optimized.png
+					#optipng -o7 original.png
+				else
+					echo "$s"
+				fi
 				;;
 			*)
 				echo "$s"
