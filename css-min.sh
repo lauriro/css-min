@@ -24,21 +24,20 @@
 #
 #
 
+# Exit the script if any statement returns a non-true return value
+#set -e
+
 export LC_ALL=C
 
-SPRITE=0
+NAMES=()
 
 while getopts ':l:s' OPT; do
 	case $OPT in
+		# insert license file
 		l)  sed -e 's/^/ * /' -e '1i/**' -e '$a\ *\/' $OPTARG;;
 
-		s)
-			SPRITE=1
-			# reset sprite images
-			convert -size 1x1 xc:none PNG8:i.png # for icons
-			cp i.png v.png # for vertical sprites
-			cp i.png h.png # for horizontal sprites
-		;;
+		# reset sprite images
+		s)  rm -f sprite.txt;;
 
 		:)  echo "Option -$OPTARG requires an argument." >&2; exit 1;;
 		\?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
@@ -47,31 +46,43 @@ done
 
 shift $((OPTIND-1))
 
+file_in_url() {
+	expr -- "$1" : ".*url(['\"]*\([^'\")]*\)"
+}
+
+clean_dirname() {
+	echo "$1" | sed -E -e :a -e 's,([^/]*[^.]/\.\./|\./|[^/]+$),,;ta'
+}
 
 css_import() {
 	while read s; do
 		case "$s" in
 			"@import "*)
-				file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
-				path=$(echo "$file" | sed -E -e :a -e 's,([^/]*[^.]/\.\./|\./|[^/]+$),,;ta')
-				sed -E -e "s,url\(['\"]*,&$path,g" "$file" | css_import
+				file=$(file_in_url "$s")
+				sed -E -e "s,url\(['\"]*,&$(clean_dirname "$file"),g" "$file" | css_import
 				;;
 			*"/*! data-uri */")
-				file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
+				file=$(file_in_url "$s")
 				#data=$(openssl enc -a -in $a | tr -d "\n")
 				s=$(echo "$s" | sed "s:$file:%s:;s:/\*.*$::")
 				printf "$s" "data:image/${file##*.};base64,$(base64 -w0 $file)"
 				;;
 			*"/*! sprite "*)
-				if [ $SPRITE ]; then
-					file=$(expr -- "$s" : ".*url(['\"]*\([^'\")]*\)")
-					echo "$s" | sed "s:url(.*$:url(h.png) repeat-x 0px $(identify -format "%h" h.png)px;:"
-					convert h.png "$file" -append PNG8:h.png
-					#pngcrush -rem allb -brute -reduce original.png optimized.png
-					#optipng -o7 original.png
-				else
-					echo "$s"
+				file=$(file_in_url "$s")
+				name="$(expr -- "$s" : ".*sprite \([[:alpha:]]*\)").png"
+				pos=$(sed -n "/ ${file//\//\\/}/s/ .*//p" sprite.txt 2>/dev/null)
+				if [ -z "$pos" ]; then
+					if [[ "${NAMES[@]}" = *"$name"* ]]; then
+						pos=$(identify -format "%h" "$name")
+						convert "$name" "$file" -append PNG8:"$name"
+					else
+						pos=0
+						convert "$file" PNG8:"$name"
+						NAMES=("${NAMES[@]}" "$name")
+					fi
+					echo "$pos $file" >> sprite.txt
 				fi
+				echo "$s" | sed "s:/\*.*$::;T;s:url([^)]*:url($name:;T;s:px 0px:px ${pos}px:;t;s:top:${pos}px:;t;s:):) 0px ${pos}px:"
 				;;
 			*)
 				echo "$s"
@@ -111,5 +122,13 @@ sed -E \
 
 # Show repeated rules
 # sed 's/^[^{]*//' min.css | sort | uniq -cid | sort -r
+
+
+for name in "${NAMES[@]}"; do
+	pngcrush -rem allb -brute -reduce "$name" _.png >/dev/null && mv -f _.png "$name"
+done
+
+#pngcrush -rem allb -brute -reduce original.png optimized.png
+#optipng -o7 original.png
 
 
