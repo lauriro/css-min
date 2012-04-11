@@ -82,6 +82,9 @@ sed -E \
 
 	while read s; do
 		case "$s" in
+			"@import "*)
+				file=$(file_in_url "$s")
+				;;
 			*"/*! data-uri */")
 				# Remove comment
 				s="${s%%/\**}"
