@@ -30,15 +30,14 @@
 export LC_ALL=C
 
 unquote(){
-	local a="$1"
-	a="${a#\"}";a="${a%\"}";a="${a#\'}"
+	local a="${1#\"}"
+	a="${a%\"}";a="${a#\'}"
 	echo ${a%\'}
 }
 
 
 file_in_url() {
-	local a="$1"
-	a="${a#*url(}"
+	local a="${1#*url(}"
 	unquote "${a%)*}"
 	#expr -- "$1" : ".*url(['\"]*\([^'\")]*\)"
 }
