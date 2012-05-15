@@ -48,10 +48,15 @@ clean_dirname() {
 
 css_import() {
 	while read s; do
-		[[ "$s" = "@import "* ]] && {
+		case "$s" in
+			"@import "*)
 				file=$(file_in_url "$s")
 				sed -E -e "s,url\(['\"]*,&$(clean_dirname "$file"),g" "$file" | css_import
-		} || echo "$s"
+				;;
+			*)
+				echo "$s"
+				;;
+		esac
 	done
 }
 
