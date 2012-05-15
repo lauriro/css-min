@@ -11,7 +11,7 @@
 # <lauri@rooden.ee> wrote this file. As long as you retain this notice you 
 # can do whatever you want with this stuff at your own risk. If we meet some 
 # day, and you think this stuff is worth it, you can buy me a beer in return.
-# -- Lauri Rooden -- https://github.com/lauriro/web_tools
+# -- Lauri Rooden -- https://github.com/lauriro/css-min
 #
 #
 # Dependencies
@@ -19,39 +19,37 @@
 #
 # The following is a list of compile dependencies for this project. These
 # dependencies are required to compile and run the application:
-#   - Unix tools: expr, sed, tr
+#   - Unix tools: sed, tr
 #   - base64 tool or openssl
 #
 #
 
 # Exit the script if any statement returns a non-true return value
-#set -e
+set -e
 
 export LC_ALL=C
 
-unquote(){
+unquote() {
 	local a="${1#\"}"
-	a="${a%\"}";a="${a#\'}"
-	echo ${a%\'}
+	a="${a#\'}";a="${a%\'}"
+	printf %s "${a%\"}"
 }
 
-
-file_in_url() {
+get_url() {
 	local a="${1#*url(}"
 	unquote "${a%)*}"
-	#expr -- "$1" : ".*url(['\"]*\([^'\")]*\)"
 }
 
-clean_dirname() {
-	echo "$1" | sed -E -e :a -e 's,([^/]*[^.]/\.\./|\./|[^/]+$),,;ta'
+normalize_path() {
+	printf %s "$1" | sed -E -e :a -e 's,([^/]*[^.]/\.\./|\./|[^/]+$),,;ta'
 }
 
 css_import() {
 	while read s; do
 		case "$s" in
 			"@import "*)
-				file=$(file_in_url "$s")
-				sed -E -e "s,url\(['\"]*,&$(clean_dirname "$file"),g" "$file" | css_import
+				file=$(get_url "$s")
+				sed -E -e "s,url\(['\"]*,&$(normalize_path "$file"),g" "$file" | css_import
 				;;
 			*)
 				echo "$s"
@@ -61,13 +59,11 @@ css_import() {
 }
 
 
-
 # A license may be specified with the `-l` option.
 test "$1" = '-l' && {
 	sed -e 's/^/ * /' -e '1i/**' -e '$a\ *\/' "$2"
 	shift;shift
 }
-
 
 
 # Import CSS files specified in arguments
@@ -81,24 +77,22 @@ sed -E \
 
 # replace data-uri's and sprites
 {
-	POS=($(cat sprite.txt 2>/dev/null))
-	UPDATED=()
+	POS=$(cat sprite.txt 2>/dev/null)
+	UPDATED=""
 
 	while read s; do
 		case "$s" in
-			"@import "*)
-				file=$(file_in_url "$s")
-				;;
 			*"/*! data-uri */")
 				# Remove comment
 				s="${s%%/\**}"
 
-				file=$(file_in_url "$s")
+				file=$(get_url "$s")
 				echo "${s%%$file*}data:image/${file##*.};base64,$(base64 -w0 $file)${s##*$file}"
+				# printf "%sdata:image/%s;base64,%s%s" "${s%%$file*}" "${file##*.}" "$(base64 -w0 $file)" "${s##*$file}" 
 				#data=$(openssl enc -a -in $a | tr -d "\n")
 				;;
 			*"/*! sprite "*)
-				file=$(file_in_url "$s")
+				file=$(get_url "$s")
 
 				# Extract sprite name from comment
 				name="${s##*sprite }";name="${name%% *}.png"
@@ -107,22 +101,30 @@ sed -E \
 				s="${s%%/\**}"
 
 				pos=""
-				for item in "${POS[@]}"; do
-					[[ "$item" = *":$file:"* ]] && pos=${item%%:*} && break
+				for item in $POS; do
+					case "$item" in
+						*":$file:"*)
+							pos=${item%%:*}
+							break
+							;;
+					esac
 				done
 				if [ -z "$pos" ]; then
-					if [[ " ${POS[@]} " = *":$name "* ]]; then
-						pos=$(identify -format "%h" "$name")
+					case "$POS " in
+						*":$name "*)
+							pos=$(identify -format "%h" "$name")
 
-						# TODO:2012-01-30:lauriro: 1px gap between sprite parts is needed to work around zoom errors (at least in IE).
-						convert "$name" "$file" -append PNG8:"$name"
-					else
-						pos=0
-						convert "$file" PNG8:"$name"
-					fi
+							# TODO:2012-01-30:lauriro: 1px gap between sprite parts is needed to work around zoom errors (at least in IE).
+							convert "$name" "$file" -append PNG8:"$name"
+							;;
+						*)
+							pos=0
+							convert "$file" PNG8:"$name"
+							;;
+					esac
+					POS="$pos:$file:$name $POS"
 
-					POS=("${POS[@]}" "$pos:$file:$name")
-					[[ " ${UPDATED[@]} " = *" $name "* ]] || UPDATED=("${UPDATED[@]}" "$name")
+					test " ${UPDATED#* $name } " = " $UPDATED " || UPDATED="$name $UPDATED"
 				fi
 				echo "$s" | sed "s:url([^)]*:url($name:;T;s:px 0px:px -${pos}px:;t;s:top:-${pos}px:;t;s:):) 0px -${pos}px:"
 				;;
@@ -132,27 +134,23 @@ sed -E \
 		esac
 	done
 
-	echo "${POS[@]}" > sprite.txt
+ 	echo "$POS" > sprite.txt
 
-	for name in "${UPDATED[@]}"; do
-		echo "pngcrush: $name" >&2
-		pngcrush -rem allb -brute -reduce "$name" _.png >/dev/null && mv -f _.png "$name"
-	done
-
-	#pngcrush -rem allb -brute -reduce original.png optimized.png
-	#optipng -o7 original.png
+ 	for name in $UPDATED; do
+ 		echo "pngcrush: $name" >&2
+ 		pngcrush -rem allb -brute -reduce "$name" _.png >/dev/null && mv -f _.png "$name"
+ 	done
 
 } |
 
 tr "'\t\n" '"  ' |
 
-# Remove spaces and put each rule to separated line
+# Remove optional spaces and put each rule to separated line
 sed -E \
     -e 's/ *([,;{}]) */\1/g' \
     -e 's/^ *//' \
     -e 's/;*}/}\
 /g' |
-
 
 # Use CSS shorthands
 sed -E \
