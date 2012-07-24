@@ -45,14 +45,14 @@ normalize_path() {
 }
 
 css_import() {
-	while read s; do
+	while read -r s; do
 		case "$s" in
 			"@import "*)
 				file=$(get_url "$s")
 				sed -E -e "s,url\(['\"]*,&$(normalize_path "$file"),g" "$file" | css_import
 				;;
 			*)
-				echo "$s"
+				printf %s\\n "$s"
 				;;
 		esac
 	done
@@ -80,7 +80,7 @@ sed -E \
 	POS=$(cat sprite.txt 2>/dev/null)
 	UPDATED=""
 
-	while read s; do
+	while read -r s; do
 		case "$s" in
 			*"/*! data-uri */")
 				# Remove comment
@@ -129,7 +129,7 @@ sed -E \
 				echo "$s" | sed "s:url([^)]*:url($name:;T;s:px 0px:px -${pos}px:;t;s:top:-${pos}px:;t;s:):) 0px -${pos}px:"
 				;;
 			*)
-				echo "$s"
+				printf %s\\n "$s"
 				;;
 		esac
 	done

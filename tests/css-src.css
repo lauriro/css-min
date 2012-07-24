@@ -8,6 +8,7 @@ Main CSS file
 b {
 	color: red;
 	background: none;
+	content: "\00a0";
+	border-color:transparent #abc transparent transparent;
 }
-
 

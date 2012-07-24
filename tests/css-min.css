@@ -18,4 +18,4 @@ button::-moz-focus-inner,input::-moz-focus-inner{padding:0;border:0}
 .bg3{background:url(v.png) repeat-x 0 0}
 .ico1{background:url(i.png) no-repeat left 0}
 .ico2{background:url(i.png) no-repeat left -32px}
-b{color:red;background:none}
+b{color:red;background:none;content:"\00a0";border-color:transparent #abc transparent transparent}
