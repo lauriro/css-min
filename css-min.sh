@@ -29,15 +29,11 @@ set -e
 
 export LC_ALL=C
 
-unquote() {
-	local a="${1#\"}"
-	a="${a#\'}";a="${a%\'}"
-	printf %s "${a%\"}"
-}
 
 get_url() {
-	local a="${1#*url(}"
-	unquote "${a%)*}"
+	local a="${1#*url(}";a="${a%)*}"
+	a="${a#\'}";a="${a%\'}";a="${a#\"}" # unquote
+	printf %s "${a%\"}"
 }
 
 normalize_path() {

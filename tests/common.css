@@ -52,3 +52,13 @@ global classes
 .last_line {
 	display:none !important;
 }
+
+.is-online {
+	color: red;
+}
+
+@keyframes blink {
+	to { opacity: .3; }
+}
+
+
