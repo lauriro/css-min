@@ -1,28 +1,16 @@
 #!/bin/sh
 #
+#
 # Tool for merging and minimizing css files
+#
+#    @version  pre-0.2
+#    @author   Lauri Rooden <lauri@rooden.ee>
+#    @license  MIT License - http://www.opensource.org/licenses/mit-license
 #
 # Usage: ./css-min.sh [FILE]... > min.css
 #
-#
-# THE BEER-WARE LICENSE
-# =====================
-#
-# <lauri@rooden.ee> wrote this file. As long as you retain this notice you 
-# can do whatever you want with this stuff at your own risk. If we meet some 
-# day, and you think this stuff is worth it, you can buy me a beer in return.
-# -- Lauri Rooden -- https://github.com/lauriro/css-min
-#
-#
-# Dependencies
-# ============
-#
-# The following is a list of compile dependencies for this project. These
-# dependencies are required to compile and run the application:
-#   - Unix tools: sed, tr
-#   - base64 tool or openssl
-#
-#
+
+
 
 # Exit the script if any statement returns a non-true return value
 set -e
