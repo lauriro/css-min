@@ -3,9 +3,9 @@
 #
 # Tool for merging and minimizing css files
 #
-#    @version  pre-0.2
-#    @author   Lauri Rooden <lauri@rooden.ee>
-#    @license  MIT License - http://www.opensource.org/licenses/mit-license
+#    @version  0.2
+#    @author   Lauri Rooden - https://github.com/lauriro/css-min
+#    @license  MIT License  - http://www.opensource.org/licenses/mit-license
 #
 # Usage: ./css-min.sh [FILE]... > min.css
 #
