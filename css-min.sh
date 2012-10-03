@@ -12,9 +12,6 @@
 
 
 
-# Exit the script if any statement returns a non-true return value
-set -e
-
 export LC_ALL=C
 
 
@@ -44,7 +41,9 @@ css_import() {
 
 
 # Import CSS files specified in arguments
-for a in "$@"; do echo "@import url('$a');"; done | css_import |
+for a in "$@"; do
+	echo "@import url('$a');";
+done | css_import |
 
 # remove non-important comments
 sed -E \
@@ -64,7 +63,7 @@ sed -E \
 				s="${s%%/\**}"
 
 				file=$(get_url "$s")
-				echo "${s%%$file*}data:image/${file##*.};base64,$(base64 -w0 $file)${s##*$file}"
+				echo "${s%%$file*}data:image/${file##*.};base64,$(base64 $file | tr -d \\n)${s##*$file}"
 				# printf "%sdata:image/%s;base64,%s%s" "${s%%$file*}" "${file##*.}" "$(base64 -w0 $file)" "${s##*$file}" 
 				#data=$(openssl enc -a -in $a | tr -d "\n")
 				;;
@@ -103,7 +102,12 @@ sed -E \
 
 					test " ${UPDATED#* $name } " = " $UPDATED " || UPDATED="$name $UPDATED"
 				fi
-				echo "$s" | sed "s:url([^)]*:url($name:;T;s:px 0px:px -${pos}px:;t;s:top:-${pos}px:;t;s:):) 0px -${pos}px:"
+				echo "$s" | 
+				sed -e "s:url([^)]*:url($name:" \
+				    -e ta -e b -e :a \
+				    -e "s/px 0px/px -${pos}px/" -e t \
+				    -e "s/top/-${pos}px/" -e t \
+				    -e "s/)/) 0px -${pos}px/"
 				;;
 			*)
 				printf %s\\n "$s"
