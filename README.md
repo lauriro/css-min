@@ -7,6 +7,9 @@ Tool for merging and minimizing CSS files.
     Usage: ./css-min.sh [FILE]... > min.css
 
 
-    Distributed under the MIT License. http://www.opensource.org/licenses/mit-license.php
+### Licence
+
+Copyright (c) 2012 Lauri Rooden &lt;lauri@rooden.ee&gt;  
+[The MIT License](http://lauri.rooden.ee/mit-license.txt)
 
 

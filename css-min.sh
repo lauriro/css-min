@@ -5,7 +5,7 @@
 #
 #    @version  pre-0.3
 #    @author   Lauri Rooden - https://github.com/lauriro/css-min
-#    @license  MIT License  - http://www.opensource.org/licenses/mit-license
+#    @license  MIT License  - http://lauri.rooden.ee/mit-license.txt
 #
 # Usage: ./css-min.sh [FILE]... > min.css
 #
