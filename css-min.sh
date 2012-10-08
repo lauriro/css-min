@@ -43,15 +43,6 @@ css_import() {
 }
 
 
-# A license may be specified with the `-l` option.
-test "$1" = '-l' && {
-	sed -e 's/^/ * /' -e '1i\
-/**' -e '$a\
-\ *\/' "$2"
-	shift;shift
-}
-
-
 # Import CSS files specified in arguments
 for a in "$@"; do echo "@import url('$a');"; done | css_import |
 
