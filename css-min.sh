@@ -3,7 +3,7 @@
 #
 # Tool for merging and minimizing css files
 #
-#    @version  0.3
+#    @version  0.4-dev
 #    @author   Lauri Rooden - https://github.com/lauriro/css-min
 #    @license  MIT License  - http://lauri.rooden.ee/mit-license.txt
 #
